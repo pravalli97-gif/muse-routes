@@ -47,6 +47,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        travel: {
+          teal: "hsl(174 71% 43%)",
+          orange: "hsl(20 93% 53%)",
+          light: "hsl(185 66% 92%)",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
