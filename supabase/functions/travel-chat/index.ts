@@ -93,20 +93,27 @@ Always maintain an excited, friendly tone while being genuinely helpful. Think o
     const assistantMessage = data.choices[0]?.message?.content || 
       "I apologize, but I couldn't process that. Could you rephrase your question?";
 
-    // Extract destination if mentioned (simple keyword extraction)
+    // Enhanced destination extraction - looks for place names and trip mentions
     let destination = null;
-    const destinationKeywords = ['visit', 'go to', 'travel to', 'explore', 'see'];
     const lastUserMessage = messages[messages.length - 1]?.content.toLowerCase() || '';
     
-    for (const keyword of destinationKeywords) {
-      if (lastUserMessage.includes(keyword)) {
-        const words = lastUserMessage.split(' ');
-        const keywordIndex = words.findIndex((w: string) => w.includes(keyword.split(' ')[0]));
-        if (keywordIndex >= 0 && keywordIndex < words.length - 1) {
-          destination = words.slice(keywordIndex + 1, keywordIndex + 3).join(' ')
-            .replace(/[.,!?]/g, '');
-          break;
-        }
+    // Common patterns for destination mentions
+    const patterns = [
+      /(?:trip to|visit|travel to|go to|explore|plan.*?to|heading to|flying to)\s+([a-z\s]+?)(?:\s|$|,|\.|\?)/i,
+      /(?:in|around)\s+([a-z\s]{3,})(?:\s|$|,|\.|\?)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = messages[messages.length - 1]?.content.match(pattern);
+      if (match && match[1]) {
+        // Clean up the destination name
+        destination = match[1].trim()
+          .split(/\s+/)
+          .slice(0, 3) // Max 3 words
+          .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        console.log('Detected destination:', destination);
+        break;
       }
     }
 

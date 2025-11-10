@@ -71,24 +71,65 @@ export const TravelMap = ({ destinations }: TravelMapProps) => {
 
             {/* Destination Pins Preview */}
             {destinations.length > 0 && (
-              <div className="absolute bottom-6 left-6 right-6 bg-card/95 backdrop-blur-sm rounded-xl p-4 border border-border">
+              <div className="absolute bottom-6 left-6 right-6 bg-card/95 backdrop-blur-sm rounded-xl p-4 border border-border shadow-xl">
                 <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
                   Planned Destinations
                 </h3>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto">
                   {destinations.map((dest, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-accent/50 animate-pin-drop"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-gradient-travel/10 border border-primary/20 animate-pin-drop hover:bg-gradient-travel/20 transition-all"
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
+                      <div className="w-10 h-10 rounded-full gradient-travel flex items-center justify-center text-white text-sm font-bold shadow-lg">
                         {index + 1}
                       </div>
-                      <span className="text-sm text-foreground font-medium">{dest.name}</span>
+                      <div className="flex-1">
+                        <span className="text-sm text-foreground font-semibold block">{dest.name}</span>
+                        <span className="text-xs text-muted-foreground">Destination {index + 1}</span>
+                      </div>
+                      <MapPin className="w-5 h-5 text-primary" />
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Visual pins on the map area */}
+            {destinations.length > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="relative w-full max-w-2xl h-full max-h-96">
+                  {destinations.map((dest, index) => {
+                    // Create a circular layout for pins
+                    const angle = (index / destinations.length) * 2 * Math.PI;
+                    const radius = 120;
+                    const x = 50 + Math.cos(angle) * radius / 3;
+                    const y = 50 + Math.sin(angle) * radius / 3;
+                    
+                    return (
+                      <div
+                        key={index}
+                        className="absolute animate-pin-drop"
+                        style={{
+                          left: `${x}%`,
+                          top: `${y}%`,
+                          transform: 'translate(-50%, -50%)',
+                          animationDelay: `${index * 0.15}s`
+                        }}
+                      >
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full gradient-travel flex items-center justify-center text-white font-bold shadow-2xl border-4 border-white animate-pulse">
+                            {index + 1}
+                          </div>
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-card/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium border border-border shadow-lg">
+                            {dest.name}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

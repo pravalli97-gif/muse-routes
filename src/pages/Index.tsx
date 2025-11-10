@@ -13,14 +13,22 @@ const Index = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
 
   const handleDestinationAdd = (destinationName: string) => {
-    // In production, geocode the destination name to get coordinates
-    // For now, adding with placeholder coordinates
-    const newDestination: Destination = {
-      name: destinationName,
-      lat: 0,
-      lng: 0
-    };
-    setDestinations(prev => [...prev, newDestination]);
+    if (!destinationName) return;
+    
+    // Avoid duplicates
+    const exists = destinations.some(d => 
+      d.name.toLowerCase() === destinationName.toLowerCase()
+    );
+    
+    if (!exists) {
+      const newDestination: Destination = {
+        name: destinationName,
+        lat: 0,
+        lng: 0
+      };
+      setDestinations(prev => [...prev, newDestination]);
+      console.log('Added destination:', destinationName);
+    }
   };
 
   return (
