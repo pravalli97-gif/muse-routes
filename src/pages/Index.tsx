@@ -1,16 +1,34 @@
 import { useState } from 'react';
 import { ChatInterface } from '@/components/ChatInterface';
 import { TravelMap } from '@/components/TravelMap';
+import { ItineraryDisplay } from '@/components/ItineraryDisplay';
 import { Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cityCoordinates } from '@/lib/geocode';
 
 interface Destination {
   name: string;
   lat: number;
   lng: number;
+  day?: number;
+}
+
+interface ItineraryDay {
+  day: number;
+  activities: {
+    time: string;
+    title: string;
+    description: string;
+    location: string;
+    cost?: string;
+    lat?: number;
+    lng?: number;
+  }[];
 }
 
 const Index = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [itinerary, setItinerary] = useState<ItineraryDay[]>([]);
 
   const handleDestinationAdd = (destinationName: string) => {
     if (!destinationName) return;
@@ -30,6 +48,59 @@ const Index = () => {
       console.log('Added destination:', destinationName);
     }
   };
+
+  const handleItineraryGenerated = async (generatedItinerary: ItineraryDay[]) => {
+    setItinerary(generatedItinerary);
+    
+    // Extract unique locations from itinerary and add to map
+    const locations: Destination[] = [];
+    const locationMap = new Map<string, { day: number, location: string }>();
+    
+    for (const day of generatedItinerary) {
+      for (const activity of day.activities) {
+        if (activity.location && !locationMap.has(activity.location)) {
+          locationMap.set(activity.location, {
+            day: day.day,
+            location: activity.location
+          });
+          
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(activity.location)}&format=json&limit=1`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+              locations.push({
+                name: activity.location,
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon),
+                day: day.day
+              });
+            } else {
+              // Fallback to random coordinates if location not found
+              locations.push({
+                name: activity.location,
+                lat: Math.random() * 180 - 90,
+                lng: Math.random() * 360 - 180,
+                day: day.day
+              });
+            }
+          } catch (error) {
+            console.error('Error fetching coordinates:', error);
+            // Fallback to random coordinates on error
+            locations.push({
+              name: activity.location,
+              lat: Math.random() * 180 - 90,
+              lng: Math.random() * 360 - 180,
+              day: day.day
+            });
+          }
+        }
+      }
+    }
+    
+    setDestinations(locations);
+    console.log('Itinerary generated with locations:', locations);
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,12 +129,26 @@ const Index = () => {
         <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
           {/* Chat Section */}
           <div className="h-full">
-            <ChatInterface onDestinationAdd={handleDestinationAdd} />
+            <ChatInterface 
+              onDestinationAdd={handleDestinationAdd}
+              onItineraryGenerated={handleItineraryGenerated}
+            />
           </div>
 
-          {/* Map Section */}
+          {/* Right Section */}
           <div className="h-full">
-            <TravelMap destinations={destinations} />
+            <Tabs defaultValue="map" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="map">Map</TabsTrigger>
+                <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+              </TabsList>
+              <TabsContent value="map" className="flex-1 overflow-y-auto">
+                <TravelMap destinations={destinations} itinerary={itinerary} />
+              </TabsContent>
+              <TabsContent value="itinerary" className="flex-1 overflow-y-auto">
+                <ItineraryDisplay itinerary={itinerary} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>

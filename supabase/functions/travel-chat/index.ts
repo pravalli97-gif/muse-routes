@@ -11,13 +11,20 @@ interface Message {
   content: string;
 }
 
+interface TripDetails {
+  destination: string | null;
+  days: number | null;
+  people: number | null;
+  budget: string | null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, tripDetails } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
@@ -28,18 +35,34 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // System prompt for travel planning
-    const systemPrompt = `You are an enthusiastic and knowledgeable AI travel companion. Your role is to:
-- Help users discover amazing destinations worldwide
-- Provide personalized travel recommendations
-- Suggest attractions, restaurants, and accommodations
-- Share insider tips and local insights
-- Be conversational, warm, and encouraging
-- Keep responses concise but informative (2-3 sentences typically)
-- Use emojis occasionally to add personality 🌍✈️
-- When discussing specific destinations, be specific about location names
+    // Enhanced system prompt with trip details context
+    const currentDetails = tripDetails as TripDetails || {};
+    const detailsContext = currentDetails.destination || currentDetails.days || currentDetails.people || currentDetails.budget
+      ? `\n\nCurrent trip details collected:
+${currentDetails.destination ? `- Destination: ${currentDetails.destination}` : ''}
+${currentDetails.days ? `- Duration: ${currentDetails.days} days` : ''}
+${currentDetails.people ? `- Travelers: ${currentDetails.people} ${currentDetails.people === 1 ? 'person' : 'people'}` : ''}
+${currentDetails.budget ? `- Budget: ${currentDetails.budget}` : ''}
 
-Always maintain an excited, friendly tone while being genuinely helpful. Think of yourself as the user's well-traveled friend who loves sharing travel experiences.`;
+Keep track of what information we already have and don't ask for it again.`
+      : '';
+
+    const systemPrompt = `You are an enthusiastic and knowledgeable AI travel companion. Your role is to:
+- Help users plan amazing trips by collecting essential information
+- Ask follow-up questions naturally when details are missing
+- Provide personalized travel recommendations and insights
+- Be conversational, warm, and encouraging
+- Keep responses concise (2-3 sentences) unless providing detailed information
+- Use emojis occasionally to add personality 🌍✈️
+- When users provide trip details, acknowledge them warmly
+
+Essential trip details to collect (if not already provided):
+1. Destination - Where they want to go
+2. Duration - How many days
+3. Number of travelers - How many people
+4. Budget - Budget range (budget/mid-range/luxury or specific amount)${detailsContext}
+
+Be natural in your conversation. Don't list all questions at once - ask one at a time based on what's missing.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
