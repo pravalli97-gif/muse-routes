@@ -46,7 +46,7 @@ export const ItineraryDisplay = ({ itinerary }: ItineraryDisplayProps) => {
   return (
     <div className="h-full bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
       <Tabs defaultValue={`day-${itinerary[0].day}`} className="h-full flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="flex flex-wrap h-auto">
           {itinerary.map((day) => (
             <TabsTrigger key={day.day} value={`day-${day.day}`}>Day {day.day}</TabsTrigger>
           ))}

@@ -126,9 +126,9 @@ export const ChatInterface = ({ onDestinationAdd, onItineraryGenerated }: ChatIn
     const extracted: Partial<TripDetails> = {};
     
     const destPatterns = [
-      /(?:to|in|visit|visiting|going to|trip to|traveling to|headed to|heading to|go to)\s+([a-zA-Z][a-zA-Z\s]+?)(?:\s+(?:for|with|,|and)|$)/i,
-      /([a-zA-Z][a-zA-Z\s]+?)\s+(?:trip|vacation|holiday|tour)/i,
-      /^([a-zA-Z][a-zA-Z\s]+)$/i,
+      /(?:to|in|visit|visiting|going to|trip to|traveling to|headed to|heading to|go to)\s+([a-zA-Z\s]+)/i,
+      /([a-zA-Z\s]+?)\s+(?:trip|vacation|holiday|tour)/i,
+      /^([a-zA-Z\s]+)$/i,
     ];
     
     for (const pattern of destPatterns) {
@@ -136,7 +136,6 @@ export const ChatInterface = ({ onDestinationAdd, onItineraryGenerated }: ChatIn
       if (match && match[1]) {
         const destination = match[1].trim()
           .split(/\s+/)
-          .slice(0, 3)
           .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
           .join(' ');
         
@@ -217,15 +216,22 @@ export const ChatInterface = ({ onDestinationAdd, onItineraryGenerated }: ChatIn
       const extracted = extractTripDetails(userMessage);
       const updatedDetails = { ...tripDetails };
       
-      if (extracted.destination && !updatedDetails.destination) {
-        updatedDetails.destination = extracted.destination;
+      if (extracted.destination && extracted.destination !== updatedDetails.destination) {
+        // New destination, reset everything
+        setTripDetails({
+          destination: extracted.destination,
+          days: extracted.days,
+          people: extracted.people,
+          budget: extracted.budget
+        });
+        setQuestionCount(0);
         if (onDestinationAdd) onDestinationAdd(extracted.destination);
+      } else {
+        if (extracted.days) updatedDetails.days = extracted.days;
+        if (extracted.people) updatedDetails.people = extracted.people;
+        if (extracted.budget) updatedDetails.budget = extracted.budget;
+        setTripDetails(updatedDetails);
       }
-      if (extracted.days) updatedDetails.days = extracted.days;
-      if (extracted.people) updatedDetails.people = extracted.people;
-      if (extracted.budget) updatedDetails.budget = extracted.budget;
-      
-      setTripDetails(updatedDetails);
       
       if (updatedDetails.destination) {
         const missing = [];
@@ -233,19 +239,15 @@ export const ChatInterface = ({ onDestinationAdd, onItineraryGenerated }: ChatIn
         if (!updatedDetails.people) missing.push('people');
         if (!updatedDetails.budget) missing.push('budget');
         
-        if (missing.length === 1 && questionCount === 0) {
-          setQuestionCount(1);
+        if (missing.length > 0 && questionCount < 2) {
+          setQuestionCount(prev => prev + 1);
           const questions = {
             days: `Great choice! 🌟 How many days are you planning?`,
             people: `Awesome! ${updatedDetails.destination} is beautiful! 🎉 Just you, or traveling with someone?`,
             budget: `Love it! What's your budget style - budget-friendly, mid-range, or luxury?`
           };
-          setMessages(prev => [...prev, { role: 'assistant', content: questions[missing[0] as keyof typeof questions] }]);
-          setIsLoading(false);
-          return;
-        } else if (missing.length >= 2 && questionCount === 0) {
-          setQuestionCount(1);
-          setMessages(prev => [...prev, { role: 'assistant', content: `${updatedDetails.destination} - excellent choice! 🎉 How many days and how many people?` }]);
+          const nextQuestion = missing[0] as keyof typeof questions;
+          setMessages(prev => [...prev, { role: 'assistant', content: questions[nextQuestion] }]);
           setIsLoading(false);
           return;
         }
